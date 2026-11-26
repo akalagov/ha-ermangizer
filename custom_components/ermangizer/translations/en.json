@@ -55,7 +55,11 @@
       },
       "add_another": {
         "title": "Controllers on this bus",
-        "description": "Configured: {count}."
+        "description": "Configured: {count}.",
+        "menu_options": {
+          "pump": "Add a controller",
+          "finish": "Finish"
+        }
       }
     },
     "error": {
@@ -64,6 +68,59 @@
     "abort": {
       "already_configured": "This bus is already configured.",
       "reconfigure_successful": "Bus settings updated."
+    }
+  },
+  "config_subentries": {
+    "pump": {
+      "abort": {
+        "already_configured": "This Modbus address is already configured on this bus.",
+        "reconfigure_successful": "Controller updated."
+      },
+      "entry_type": "Pump controller",
+      "error": {
+        "duplicate_unit_id": "This Modbus address is already used on this bus."
+      },
+      "initiate_flow": {
+        "user": "Add a controller"
+      },
+      "step": {
+        "user": {
+          "title": "Add a controller",
+          "description": "One pump controller on this bus.",
+          "data": {
+            "name": "Name",
+            "unit_id": "Modbus address",
+            "layout": "Register map",
+            "poll_interval": "State polling interval (s)",
+            "slow_poll_interval": "Telemetry polling interval (s)",
+            "access_level": "Parameter access level"
+          },
+          "data_description": {
+            "layout": "Automatic detection reads one status register from each documented map and picks the one that answers. Choose a map explicitly if the controller answers on both.",
+            "poll_interval": "How often the run/stop state is read. Automations trigger on this.",
+            "slow_poll_interval": "How often analogue telemetry and parameters are read. Keep this well above the state interval: the bus is half duplex.",
+            "access_level": "Which parameters are exposed. Higher levels include parameters that change how the pump runs."
+          }
+        },
+        "reconfigure": {
+          "title": "Edit controller",
+          "description": "One pump controller on this bus.",
+          "data": {
+            "name": "Name",
+            "unit_id": "Modbus address",
+            "layout": "Register map",
+            "poll_interval": "State polling interval (s)",
+            "slow_poll_interval": "Telemetry polling interval (s)",
+            "access_level": "Parameter access level"
+          },
+          "data_description": {
+            "layout": "Automatic detection reads one status register from each documented map and picks the one that answers. Choose a map explicitly if the controller answers on both.",
+            "poll_interval": "How often the run/stop state is read. Automations trigger on this.",
+            "slow_poll_interval": "How often analogue telemetry and parameters are read. Keep this well above the state interval: the bus is half duplex.",
+            "access_level": "Which parameters are exposed. Higher levels include parameters that change how the pump runs."
+          }
+        }
+      }
     }
   },
   "selector": {
