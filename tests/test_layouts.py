@@ -246,8 +246,10 @@ def test_provenance_names_the_source_document_for_each_layout() -> None:
     for layout_id in layouts.LAYOUT_MAP:
         entry = PROVENANCE[layout_id]
         assert ".pdf" in entry["source"]
-    # Pressure in the legacy layout is the one entry known only from hardware.
-    assert "pressure" in PROVENANCE[LAYOUT_LEGACY]["hardware_verified"]
+    # Legacy pressure at 26 is read on some production ER-G-220-02 units and
+    # refused on others, so it is firmware-dependent, not hardware-verified.
+    assert "pressure" in PROVENANCE[LAYOUT_LEGACY]["firmware_dependent"]
+    assert PROVENANCE[LAYOUT_LEGACY]["hardware_verified"] == []
 
 
 def test_no_readonly_probe_parameter_is_exposed_as_writable() -> None:

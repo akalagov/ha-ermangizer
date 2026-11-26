@@ -18,8 +18,9 @@ device setting with an autodetection helper rather than a model constant.
 
 Pressure at legacy input register 26 is not in doc v1.4, which predates the
 pressure-based pump controller and marks 0x000D-0x03FF as reserved. It is
-listed because it reads correctly on a production ER-G-220-02 running that
-firmware; PROVENANCE in models.py records that distinction.
+listed because it reads on some production ER-G-220-02 units, but others refuse
+it with illegal data address — it is firmware-dependent, so PROVENANCE in
+models.py records it as such and the integration tolerates it being absent.
 """
 from __future__ import annotations
 

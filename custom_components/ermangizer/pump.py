@@ -17,6 +17,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
+from tmodbus.exceptions import IllegalDataAddressError, IllegalFunctionError
+
 from .const import (
     LAYOUT_LEGACY,
     LAYOUT_MODERN,
@@ -34,6 +36,15 @@ REQUEST_DEADLINE = 30.0
 
 class PumpUnavailable(Exception):
     """A request failed or the connection looks stuck."""
+
+
+class RegisterAbsent(PumpUnavailable):
+    """The device answered, but does not implement the addressed registers.
+
+    A live device refusing one address is not an unreachable device: firmware
+    omits registers (legacy pressure at 26 is one), and losing the whole pump
+    over one of them is worse than losing that one reading.
+    """
 
 
 # Parameters further apart than this are read in separate requests: the wasted
@@ -58,6 +69,7 @@ class PumpData:
     _fast_blocks: list[ReadBlock] = field(default_factory=list, repr=False)
     _slow_blocks: list[ReadBlock] = field(default_factory=list, repr=False)
     _param_blocks: list[ReadBlock] = field(default_factory=list, repr=False)
+    _absent_logged: set[str] = field(default_factory=set, repr=False)
 
     def __post_init__(self) -> None:
         fast = [reg for reg in self.layout.registers if reg.fast]
@@ -101,11 +113,18 @@ class PumpData:
                 raise PumpUnavailable(
                     f"Timed out after {REQUEST_DEADLINE}s on {what}"
                 ) from exc
+            except (IllegalDataAddressError, IllegalFunctionError) as exc:
+                # The device answered; it just does not implement this address.
+                raise RegisterAbsent(f"{what}: {exc}") from exc
             except Exception as exc:  # noqa: BLE001
                 raise PumpUnavailable(f"{what} failed: {exc}") from exc
 
     async def _read_block(self, client: Any, block: ReadBlock, function: int) -> dict[int, int]:
-        """Read one block and return {address: raw value}."""
+        """Read one block and return {address: raw value}.
+
+        Raises RegisterAbsent when the device declines the address outright,
+        so callers can drop that reading instead of the whole pump.
+        """
         if function == 0x04:
             values = await self._request(
                 client.read_input_registers(block.start_address, block.quantity),
@@ -129,8 +148,24 @@ class PumpData:
         blocks = self._fast_blocks if fast else self._slow_blocks
         out: dict[int, int] = {}
         for block in blocks:
-            out.update(await self._read_block(client, block, 0x04))
+            try:
+                out.update(await self._read_block(client, block, 0x04))
+            except RegisterAbsent as exc:
+                self._note_absent(f"input {block.start_address}", exc)
         return out
+
+    def _note_absent(self, what: str, exc: Exception) -> None:
+        """Log a declined address once, not once per poll cycle."""
+        if what in self._absent_logged:
+            _LOGGER.debug("Ermangizer %s still absent: %s", what, exc)
+            return
+        self._absent_logged.add(what)
+        _LOGGER.warning(
+            "Ermangizer unit %s does not implement %s; the affected readings "
+            "will stay unknown",
+            self.unit_id,
+            what,
+        )
 
     async def read_parameters(self) -> dict[str, int]:
         """Read the configured parameters, returning raw values by key."""
@@ -139,7 +174,10 @@ class PumpData:
         client = self.gateway.client_for(self.unit_id)
         raw_by_address: dict[int, int] = {}
         for block in self._param_blocks:
-            raw_by_address.update(await self._read_block(client, block, 0x03))
+            try:
+                raw_by_address.update(await self._read_block(client, block, 0x03))
+            except RegisterAbsent as exc:
+                self._note_absent(f"holding {block.start_address}", exc)
         return {
             param.key: raw_by_address[param.address]
             for param in self.params

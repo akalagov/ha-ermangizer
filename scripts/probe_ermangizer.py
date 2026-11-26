@@ -44,7 +44,9 @@ except ImportError as exc:  # pragma: no cover - operator-facing message
 # the point is to discover the layout, so probing must not presuppose it.
 PROBE_RANGES: list[tuple[str, int, int]] = [
     ("legacy telemetry", 0x04, 0, 16),
-    ("legacy pressure", 0x04, 24, 4),
+    # Probed alone: a read spanning 24..27 fails as a whole, which cannot say
+    # which address the firmware refuses, and 26 is firmware-dependent.
+    ("legacy pressure 26", 0x04, 26, 1),
     ("legacy status", 0x04, 1024, 4),
     ("modern telemetry", 0x04, 2000, 12),
     ("legacy control", 0x03, 0, 16),

@@ -51,10 +51,19 @@ class ErmangizerRuntimeData:
 
 
 async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
+    from tmodbus.exceptions import TModbusError
+    from homeassistant.exceptions import ConfigEntryNotReady
+
     from .coordinator import async_create_coordinator
     from .modbus_client import async_get_gateway, async_release_gateway
 
-    gateway = await async_get_gateway(hass, entry.data)
+    try:
+        gateway = await async_get_gateway(hass, entry.data)
+    except TModbusError as exc:
+        # A bus that is down right now is not a misconfiguration: retry on
+        # HA's schedule instead of parking the entry in Setup Error, which
+        # needs a manual reload.
+        raise ConfigEntryNotReady(f"Modbus bus unavailable: {exc}") from exc
 
     coordinators: dict[str, ErmangizerCoordinator] = {}
     try:

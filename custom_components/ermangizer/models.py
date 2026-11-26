@@ -123,7 +123,11 @@ def param_address(param: str) -> int:
 PROVENANCE = {
     "legacy_220_01": {
         "source": "protocol_modbus_er-g-220-01.pdf (doc v1.4, FW 1.0.9.2)",
-        "hardware_verified": ["pressure"],
+        "hardware_verified": [],
+        # Pressure at 26 was read on one production ER-G-220-02 and refused
+        # with illegal data address on another, so it is firmware-dependent
+        # and not a verified register.
+        "firmware_dependent": ["pressure"],
     },
     "modern_220_02_05": {
         "source": "protocol_modbus_erg-220-05.pdf (doc 1.2, 17.01.2025)",

@@ -9,8 +9,17 @@ READ_FUNCTIONS = {3: "holding", 4: "input"}
 
 
 class FakeModbusDevice:
-    def __init__(self, inputs: dict[int, int], holdings: dict[int, int]) -> None:
+    def __init__(
+        self,
+        inputs: dict[int, int],
+        holdings: dict[int, int],
+        reject: set[int] | None = None,
+    ) -> None:
         self.tables = {"input": dict(inputs), "holding": dict(holdings)}
+        # Addresses answered with exception 2 (illegal data address), like a
+        # register the firmware does not implement. A read overlapping any of
+        # them fails as a whole, which is how Modbus behaves.
+        self.reject: set[int] = reject or set()
         self.coils: dict[int, bool] = {}
         self.requests: list[tuple[str, int, int]] = []
         self.writes: list[tuple] = []
@@ -58,6 +67,8 @@ class FakeModbusDevice:
             start, quantity = unpack(">HH", pdu[1:5])
             table = self.tables[READ_FUNCTIONS[function]]
             self.requests.append((READ_FUNCTIONS[function], start, quantity))
+            if any(addr in self.reject for addr in range(start, start + quantity)):
+                return bytes([function | 0x80, 2])  # illegal data address
             values = [table.get(start + i, 0) for i in range(quantity)]
             return bytes([function, quantity * 2]) + b"".join(
                 pack(">H", v) for v in values
