@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .entity import ErmangizerEntity, pump_identities
+from .entity import ErmangizerEntity, prune_stale, pump_identities
 from .models import RegisterDef
 
 from .units import DEVICE_CLASS_BY_DISPLAY_UNIT, display_unit
@@ -112,4 +112,11 @@ async def async_setup_entry(
                 entities.append(RawRegisterSensor(identity, register))
         entities.append(StateSensor(identity))
         entities.append(AlarmSensor(identity))
+        prune_stale(
+            hass,
+            entry,
+            identity.subentry,
+            "sensor",
+            {entity.unique_id for entity in entities},
+        )
         async_add_entities(entities, config_subentry_id=identity.subentry.subentry_id)

@@ -3,6 +3,10 @@ from __future__ import annotations
 
 DOMAIN = "ermangizer"
 MANUFACTURER = "КБ АГАВА / ЭРМАНДЖАЙЗЕР"
+# The bus device is whatever sits between Home Assistant and the RS-485 line,
+# and the integration cannot know its make; naming it after its role keeps the
+# device card honest.
+GATEWAY_MODEL = "Modbus gateway / bus"
 
 # --- Config entry / subentry keys ------------------------------------------
 CONF_CONNECTION_TYPE = "connection_type"

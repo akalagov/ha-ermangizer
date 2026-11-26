@@ -14,11 +14,13 @@ from homeassistant.components.select import (
     SERVICE_SELECT_OPTION,
 )
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN, SERVICE_TURN_OFF
-from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
+from homeassistant.config_entries import SOURCE_RECONFIGURE
+from homeassistant.const import ATTR_ENTITY_ID, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.ermangizer.const import DOMAIN
+from custom_components.ermangizer.const import DOMAIN, SUBENTRY_TYPE_PUMP
 from tests.conftest import add_entry
 from tests.fake_device import FakeModbusDevice
 
@@ -147,3 +149,74 @@ async def test_unloading_releases_the_bus(hass: HomeAssistant, entry) -> None:
     # The gateway dict is emptied; the domain key itself may linger empty.
     gateways = hass.data.get(DOMAIN, {}).get("gateways", {})
     assert not gateways
+
+
+async def _reconfigure_access(hass: HomeAssistant, entry, level: str) -> None:
+    sub = next(
+        s for s in entry.subentries.values() if s.subentry_type == SUBENTRY_TYPE_PUMP
+    )
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_PUMP),
+        context={
+            "source": SOURCE_RECONFIGURE,
+            "subentry_id": sub.subentry_id,
+        },
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], user_input={**sub.data, "access_level": level}
+    )
+    await hass.async_block_till_done()
+    assert result["type"] == "abort"
+
+
+def _registered(hass: HomeAssistant, entry, domain: str) -> set[str]:
+    return {
+        e.entity_id
+        for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+        if e.domain == domain
+    }
+
+
+async def test_lowering_access_prunes_dropped_entities(
+    hass: HomeAssistant, entry
+) -> None:
+    """A parameter the level no longer exposes must vanish, not linger.
+
+    HA only garbage-collects entities whose platform is gone, so a parameter
+    dropped by an access-level change would otherwise sit in the registry as
+    ``unavailable`` forever, and automations pointing at it would silently stop
+    working instead of seeing the entity disappear.
+    """
+    before = _registered(hass, entry, NUMBER_DOMAIN)
+    assert before
+
+    await _reconfigure_access(hass, entry, "general")
+
+    after = _registered(hass, entry, NUMBER_DOMAIN)
+    assert after < before, "numbers removed by the level must be unregistered"
+    assert entry.state.name == "LOADED"
+    # What survives is exactly what the general level still exposes, and it is
+    # live rather than orphaned.
+    for entity_id in after:
+        state = hass.states.get(entity_id)
+        assert state is not None and state.state != STATE_UNAVAILABLE
+
+
+async def test_raising_access_adds_entities(hass: HomeAssistant, entry) -> None:
+    await _reconfigure_access(hass, entry, "general")
+    general = _registered(hass, entry, NUMBER_DOMAIN)
+    await _reconfigure_access(hass, entry, "factory")
+    assert general < _registered(hass, entry, "number")
+
+
+async def test_pumps_hang_off_a_gateway_device(hass: HomeAssistant, entry) -> None:
+    """The pump devices name the bus as their via_device, so it must exist.
+
+    A dangling via_device is a warning in 2026.2 and an error in 2025.12+.
+    """
+    devices = dr.async_get(hass)
+    entries = list(dr.async_entries_for_config_entry(devices, entry.entry_id))
+    assert len(entries) == 2, "one bus device plus one pump device"
+    pump = next(d for d in entries if d.via_device_id is not None)
+    bus = next(d for d in entries if d.id == pump.via_device_id)
+    assert bus.entry_type is dr.DeviceEntryType.SERVICE

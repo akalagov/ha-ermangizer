@@ -1,14 +1,61 @@
 """Entity base classes shared by all Ermangizer platforms."""
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MANUFACTURER, SUBENTRY_TYPE_PUMP
+from .const import DOMAIN, GATEWAY_MODEL, MANUFACTURER, SUBENTRY_TYPE_PUMP
 from .coordinator import ErmangizerCoordinator
+
+
+def gateway_device_info(config_entry: ConfigEntry) -> DeviceInfo:
+    """The bus itself as a device, so each pump can hang off it."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, config_entry.entry_id)},
+        name=config_entry.title,
+        manufacturer=MANUFACTURER,
+        model=GATEWAY_MODEL,
+        entry_type=DeviceEntryType.SERVICE,
+    )
+
+
+@callback
+def prune_stale(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    subentry: ConfigSubentry,
+    domain: str,
+    unique_ids: Iterable[str],
+) -> None:
+    """Remove this subentry's entities of ``domain`` that are no longer built.
+
+    Which entities exist depends on the access level and on the detected
+    register map, both of which can change while the entry stays loaded. HA
+    only garbage-collects entities whose platform is gone, so without this the
+    dropped ones linger forever as ``unavailable``.
+
+    Takes the unique_ids about to be added rather than parameter keys, so the
+    caller cannot drift from how entities actually name themselves. Matching is
+    by unique_id rather than by device because the device registry is keyed per
+    config entry, not per subentry: a device-level sweep would delete the other
+    pumps' entities too.
+    """
+    registry = er.async_get(hass)
+    keep = set(unique_ids)
+    for entry in er.async_entries_for_config_entry(registry, config_entry.entry_id):
+        if (
+            entry.platform == DOMAIN
+            and entry.domain == domain
+            and entry.config_subentry_id == subentry.subentry_id
+            and entry.unique_id not in keep
+        ):
+            registry.async_remove(entry.entity_id)
 
 
 @dataclass(frozen=True)

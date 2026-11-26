@@ -12,7 +12,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .entity import ErmangizerEntity, pump_identities
+from .entity import ErmangizerEntity, prune_stale, pump_identities
 from .models import CoilDef
 from .pump import PumpUnavailable
 
@@ -44,11 +44,16 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     for identity in pump_identities(entry):
-        async_add_entities(
-            [
-                CoilButton(identity, coil)
-                for coil in identity.coordinator.pump.layout.coils
-                if coil.key not in _SWITCH_COILS
-            ],
-            config_subentry_id=identity.subentry.subentry_id,
+        entities = [
+            CoilButton(identity, coil)
+            for coil in identity.coordinator.pump.layout.coils
+            if coil.key not in _SWITCH_COILS
+        ]
+        prune_stale(
+            hass,
+            entry,
+            identity.subentry,
+            "button",
+            {entity.unique_id for entity in entities},
         )
+        async_add_entities(entities, config_subentry_id=identity.subentry.subentry_id)

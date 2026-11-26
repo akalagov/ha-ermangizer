@@ -8,7 +8,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .entity import ErmangizerEntity, pump_identities
+from .entity import ErmangizerEntity, prune_stale, pump_identities
 from .models import ParamDef
 from .pump import PumpUnavailable
 
@@ -61,11 +61,16 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     for identity in pump_identities(entry):
-        async_add_entities(
-            [
-                ParameterSelect(identity, param)
-                for param in identity.coordinator.pump.params
-                if param.is_enum
-            ],
-            config_subentry_id=identity.subentry.subentry_id,
+        entities = [
+            ParameterSelect(identity, param)
+            for param in identity.coordinator.pump.params
+            if param.is_enum
+        ]
+        prune_stale(
+            hass,
+            entry,
+            identity.subentry,
+            "select",
+            {entity.unique_id for entity in entities},
         )
+        async_add_entities(entities, config_subentry_id=identity.subentry.subentry_id)

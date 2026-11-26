@@ -71,6 +71,15 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
         raise
 
     entry.runtime_data = ErmangizerRuntimeData(gateway=gateway, coordinators=coordinators)
+    # Pump devices name this as their via_device, so it must exist before the
+    # platforms register them.
+    from homeassistant.helpers import device_registry as dr
+
+    from .entity import gateway_device_info
+
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id, **gateway_device_info(entry)
+    )
     await hass.config_entries.async_forward_entry_setups(entry, platforms())
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True

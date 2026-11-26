@@ -11,7 +11,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .codes import RUNNING_STATES
-from .entity import ErmangizerEntity, pump_identities
+from .entity import ErmangizerEntity, prune_stale, pump_identities
 
 
 class ErmangizerBinarySensor(ErmangizerEntity, BinarySensorEntity):
@@ -70,4 +70,11 @@ async def async_setup_entry(
         # would leave it permanently unknown.
         if identity.coordinator.pump.layout.id.endswith("220_01"):
             entities.append(MotorOverloadBinarySensor(identity))
+        prune_stale(
+            hass,
+            entry,
+            identity.subentry,
+            "binary_sensor",
+            {entity.unique_id for entity in entities},
+        )
         async_add_entities(entities, config_subentry_id=identity.subentry.subentry_id)
