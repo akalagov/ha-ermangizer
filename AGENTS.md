@@ -93,7 +93,9 @@ the single source; `hacs.json` does not carry a version and takes it from the
 release.
 
 A release is created on GitHub with the archive for manual installation attached:
-`custom_components/`, `LICENSE`, `README.md`, without `__pycache__`.
+`custom_components/`, `LICENSE`, `README.md`, without `__pycache__`. Build it with
+`python3 scripts/package_release.py` (the name comes from the manifest) and check
+an existing archive against the working tree with `--check`.
 
 The test stack in `requirements-dev.txt` is pinned and excluded from Dependabot
 in `.github/dependabot.yml`: `pytest-homeassistant-custom-component` is built
