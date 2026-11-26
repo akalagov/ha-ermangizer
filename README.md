@@ -31,9 +31,6 @@ YAML-конфиге `modbus`.
 
 ### Через Marketplace (Home Assistant 2026.11 и новее)
 
-Начиная с 2026.11 встроенный Marketplace принимает пользовательские репозитории
-только с GitHub, поэтому репозиторий размещён здесь.
-
 1. Settings → Devices & Services → ⋮ (или Marketplace в боковом меню).
 2. Добавить пользовательский репозиторий: `akalagov/ha-ermangizer`,
    категория **Integration**.
