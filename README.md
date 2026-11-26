@@ -24,25 +24,21 @@
 прибора прямо из Home Assistant — вместо ручного перечисления регистров в
 YAML-конфиге `modbus`.
 
+Преобразователи — [ЭРМАНДЖАЙЗЕР](https://www.ermangizer.ru/) (российские
+частотные преобразователи для насосов и автополива).
+
 ## Установка
 
 ### Через Marketplace (Home Assistant 2026.11 и новее)
 
-Начиная с 2026.11 встроенный Marketplace (бывший HACS) принимает пользовательские
-репозитории только с GitHub, поэтому репозиторий размещён здесь.
+Начиная с 2026.11 встроенный Marketplace принимает пользовательские репозитории
+только с GitHub, поэтому репозиторий размещён здесь.
 
 1. Settings → Devices & Services → ⋮ (или Marketplace в боковом меню).
 2. Добавить пользовательский репозиторий: `akalagov/ha-ermangizer`,
    категория **Integration**.
 3. Найти «Ermangizer pump controllers» и установить. Обновления приходят
    штатно через Settings → Updates.
-
-### Через HACS (Home Assistant 2026.10 и старее)
-
-1. HACS → Integrations → ⋮ → Custom repositories.
-2. Repository: `https://github.com/akalagov/ha-ermangizer`,
-   Category: **Integration**.
-3. Дождаться обновления списка, найти «Ermangizer pump controllers», установить.
 
 ### Вручную
 
@@ -187,6 +183,14 @@ python3 -m pytest
   масштаб.
 - Уровни доступа выше «расширенного» показывают заводские параметры, которые
   производитель не рекомендует менять на работающей установке.
+
+## См. также
+
+- [ЭРМАНДЖАЙЗЕР](https://www.ermangizer.ru/) — сайт производителя
+  частотных преобразователей.
+- [wooniot/ha-modbus-bridge](https://github.com/wooniot/ha-modbus-bridge) —
+  интеграция, чью архитектуру (одна запись = одна шина, устройства = subentry)
+  повторяет этот проект.
 
 ## Лицензия
 
