@@ -1,0 +1,16 @@
+{
+  "domain": "ermangizer",
+  "name": "Ermangizer pump controllers",
+  "codeowners": [
+    "@akalagov"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/akalagov/ha-ermangizer",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/akalagov/ha-ermangizer/issues",
+  "requirements": [
+    "tmodbus==0.6.2"
+  ],
+  "version": "0.1.0"
+}

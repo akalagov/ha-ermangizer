@@ -1,0 +1,123 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ermangizer RS-485 bus",
+        "description": "How is the bus with the pump controllers reachable from Home Assistant? Individual controllers are added next.",
+        "data": {
+          "connection_type": "Connection type"
+        }
+      },
+      "network": {
+        "title": "Gateway connection",
+        "description": "Address and port of the RS-485-to-Ethernet gateway. With a multi-port gateway each serial port is usually a separate TCP port - configure one integration entry per port.",
+        "data": {
+          "host": "Host or IP address",
+          "tcp_port": "Port",
+          "wait_between_requests_ms": "Pause between requests (ms)"
+        },
+        "data_description": {
+          "wait_between_requests_ms": "Minimum silence between two Modbus requests on this bus. Raise it if you see timeouts or garbled reads; 0 disables the pause."
+        }
+      },
+      "serial": {
+        "title": "Serial connection",
+        "description": "Local serial device of the USB-RS485 adapter and the settings configured in the controllers (Ermangizer default is 9600-N-1).",
+        "data": {
+          "port": "Serial port",
+          "baudrate": "Baud rate",
+          "parity": "Parity",
+          "stopbits": "Stop bits",
+          "bytesize": "Byte size",
+          "wait_between_requests_ms": "Pause between requests (ms)"
+        },
+        "data_description": {
+          "wait_between_requests_ms": "Minimum silence between two Modbus requests on this bus. Raise it if you see timeouts or garbled reads; 0 disables the pause."
+        }
+      },
+      "pump": {
+        "title": "Add a controller",
+        "description": "One pump controller on this bus.",
+        "data": {
+          "name": "Name",
+          "unit_id": "Modbus address",
+          "layout": "Register map",
+          "poll_interval": "State polling interval (s)",
+          "slow_poll_interval": "Telemetry polling interval (s)",
+          "access_level": "Parameter access level"
+        },
+        "data_description": {
+          "layout": "Automatic detection reads one status register from each documented map and picks the one that answers. Choose a map explicitly if the controller answers on both.",
+          "poll_interval": "How often the run/stop state is read. Automations trigger on this.",
+          "slow_poll_interval": "How often analogue telemetry and parameters are read. Keep this well above the state interval: the bus is half duplex.",
+          "access_level": "Which parameters are exposed. Higher levels include parameters that change how the pump runs."
+        }
+      },
+      "add_another": {
+        "title": "Controllers on this bus",
+        "description": "Configured: {count}."
+      }
+    },
+    "error": {
+      "duplicate_unit_id": "This Modbus address is already used on this bus."
+    },
+    "abort": {
+      "already_configured": "This bus is already configured.",
+      "reconfigure_successful": "Bus settings updated."
+    }
+  },
+  "selector": {
+    "connection_type": {
+      "options": {
+        "tcp": "Modbus TCP (gateway speaks Modbus itself)",
+        "rtu_over_tcp": "RTU over TCP (transparent serial bridge)",
+        "serial": "Serial (USB-RS485 adapter)"
+      }
+    },
+    "layout": {
+      "options": {
+        "auto": "Detect automatically",
+        "legacy_220_01": "ER-G-220-01(02) - classic map",
+        "modern_220_02_05": "ER-G-220-02 / ERG-220-05 - 2025 map"
+      }
+    },
+    "access_level": {
+      "options": {
+        "monitor": "Monitoring only (read-only)",
+        "general": "General parameters",
+        "advanced": "Advanced parameters",
+        "factory": "Factory parameters"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "state": {
+        "name": "State"
+      },
+      "alarms": {
+        "name": "Alarms"
+      }
+    },
+    "binary_sensor": {
+      "pump_running": {
+        "name": "Running"
+      },
+      "alarm_active": {
+        "name": "Alarm"
+      },
+      "motor_overload": {
+        "name": "Motor overload"
+      }
+    },
+    "switch": {
+      "pump_running": {
+        "name": "Pump",
+        "state": {
+          "on": "Running",
+          "off": "Stopped"
+        }
+      }
+    }
+  }
+}

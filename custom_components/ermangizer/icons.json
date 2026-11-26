@@ -1,0 +1,28 @@
+{
+  "entity": {
+    "switch": {
+      "pump_running": {
+        "mdi": "mdi:pump"
+      }
+    },
+    "sensor": {
+      "state": {
+        "mdi": "mdi:information-outline"
+      },
+      "alarms": {
+        "mdi": "mdi:alert"
+      }
+    },
+    "binary_sensor": {
+      "pump_running": {
+        "mdi": "mdi:pump"
+      },
+      "alarm_active": {
+        "mdi": "mdi:alert"
+      },
+      "motor_overload": {
+        "mdi": "mdi:heat-wave"
+      }
+    }
+  }
+}

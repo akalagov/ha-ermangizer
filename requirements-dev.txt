@@ -1,0 +1,14 @@
+# Test-only environment. The integration itself declares its dependency in
+# custom_components/ermangizer/manifest.json; homeassistant is pulled in here
+# because the end-to-end tests run the real integration against it.
+#
+# pytest-homeassistant-custom-component pins the homeassistant version it was
+# built for, so bump the two together and only in CI: a mismatch shows up as
+# fixtures silently missing, not as a clear error.
+pytest
+pytest-asyncio
+pytest-timeout
+pytest-homeassistant-custom-component==0.13.316
+pyflakes
+tmodbus==0.6.2
+pyserial

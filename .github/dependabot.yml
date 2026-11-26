@@ -1,0 +1,34 @@
+version: 2
+updates:
+  # Runtime and test dependencies. The integration itself declares its runtime
+  # dependency in custom_components/ermangizer/manifest.json, which Dependabot
+  # cannot read; only requirements-dev.txt is tracked here.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    ignore:
+      # pytest-homeassistant-custom-component is built against one Home
+      # Assistant version and pulls it in as a dependency: bumping either alone
+      # shows up as fixtures silently missing, not as a clear error. Bump the
+      # pair by hand, together, after a green CI run.
+      - dependency-name: pytest-homeassistant-custom-component
+      - dependency-name: homeassistant
+      # tmodbus ships with the integration and a major can rename client
+      # methods (the write API already changed once); only a live device shows
+      # it. Patch and minor still update.
+      - dependency-name: tmodbus
+        update-types:
+          - version-update:semver-major
+
+  # The CI workflow's own actions.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - ci
