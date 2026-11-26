@@ -4,6 +4,11 @@ Two poll rates share one coordinator. The status word is read every cycle
 because automations act on run/stop transitions; the analogue telemetry is read
 only once its own interval has elapsed, because on a half duplex bus every
 extra request displaces traffic from other devices on the same line.
+
+The fast cycle therefore reads a fraction of what is published, and carries the
+rest of the last slow reading forward. Without that, every telemetry sensor and
+every parameter would go unknown for all but one cycle in
+`slow_poll_interval` — with the defaults, one second in sixty.
 """
 from __future__ import annotations
 
@@ -67,6 +72,11 @@ class ErmangizerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._slow_poll_interval = slow_poll_interval
         self._pump: PumpData | None = None
         self._slow_deadline = 0.0
+        # Telemetry and parameters are read on the slow interval; the fast
+        # cycle reads only the status words, so it republishes the last slow
+        # reading instead of dropping it.
+        self._last_raw: dict[int, int] = {}
+        self._last_parameters: dict[str, int] = {}
 
     @property
     def pump(self) -> PumpData:
@@ -105,16 +115,23 @@ class ErmangizerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if read_slow:
                 raw.update(await pump.read_inputs(fast=False))
                 if pump.params:
-                    raw["_parameters"] = await pump.read_parameters()
+                    self._last_parameters = await pump.read_parameters()
+            else:
+                raw = {**self._last_raw, **raw}
         except PumpUnavailable as exc:
             raise UpdateFailed(str(exc)) from exc
 
-        data = decode_registers(pump.layout, {k: v for k, v in raw.items() if k != "_parameters"})
-        data["parameters"] = raw.get("_parameters", {})
         if read_slow:
             # Floor at the fast interval so a slow interval of zero still
             # reads telemetry once per cycle rather than thrashing the bus.
             self._slow_deadline = now + max(self._slow_poll_interval, self.update_interval.total_seconds())
+            # A slow cycle read every register, so it is the new baseline. A
+            # register the device stopped answering drops out here rather than
+            # lingering forever.
+            self._last_raw = raw
+
+        data = decode_registers(pump.layout, raw)
+        data["parameters"] = self._last_parameters
         data["slow_poll"] = read_slow
         data["layout"] = pump.layout.id
         return data
