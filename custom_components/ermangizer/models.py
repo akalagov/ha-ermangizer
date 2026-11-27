@@ -29,6 +29,8 @@ class RegisterDef:
     entity_registry_enabled_default: bool = True
     # Polled on the fast interval (state) or the slow one (telemetry).
     fast: bool = False
+    # Published as the device's software version instead of as a sensor.
+    device_info: bool = False
 
 
 @dataclass(frozen=True)
@@ -83,10 +85,16 @@ class Layout:
     has_param_aliases: bool = True
     status_register: RegisterDef = field(init=False)
     alarm_register: RegisterDef = field(init=False)
+    device_info_register: RegisterDef | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "status_register", self.register_by_key("status"))
         object.__setattr__(self, "alarm_register", self.register_by_key("alarm"))
+        object.__setattr__(
+            self,
+            "device_info_register",
+            next((reg for reg in self.registers if reg.device_info), None),
+        )
 
     def register_by_key(self, key: str) -> RegisterDef:
         for reg in self.registers:

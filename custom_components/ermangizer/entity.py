@@ -74,6 +74,23 @@ class PumpIdentity:
     def title(self) -> str:
         return self.subentry.title
 
+    @property
+    def firmware_version(self) -> str | None:
+        """The firmware word, published as the device's software version.
+
+        The register is published as read: its encoding is undocumented, so
+        splitting it into major/minor/patch would be a guess presented as fact.
+        Only the modern map has the register, and only a slow poll reads it.
+        Home Assistant reads ``device_info`` when it adds an entity, so the
+        value is the one the first (slow) refresh saw; flashing new firmware
+        without reloading the integration leaves it stale.
+        """
+        register = self.coordinator.pump.layout.device_info_register
+        if register is None or not self.coordinator.data:
+            return None
+        entry = self.coordinator.data.get(register.key)
+        return None if entry is None else str(int(entry["raw"]))
+
     def device_info(self, layout_title: str) -> DeviceInfo:
         """One device per pump subentry.
 
@@ -86,6 +103,7 @@ class PumpIdentity:
             name=self.title,
             manufacturer=MANUFACTURER,
             model=layout_title,
+            sw_version=self.firmware_version,
             via_device=(DOMAIN, self.config_entry.entry_id),
         )
 

@@ -80,7 +80,7 @@ MODERN_REGISTERS = (
                 diagnostic=True, entity_registry_enabled_default=False, fast=True),
     RegisterDef("pressure", 2006, "Давление", "bar", "pressure", "measurement", 0.01),
     RegisterDef("firmware", 2007, "Версия ПО", None, None, None, 1.0, 1,
-                icon="mdi:chip", entity_registry_enabled_default=False),
+                icon="mdi:chip", device_info=True),
     RegisterDef("ai_a1", 2008, "Сигнал входа А1", "%", None, "measurement", 1.0, 1,
                 entity_registry_enabled_default=False),
     RegisterDef("ai_a2", 2009, "Сигнал входа А2", "%", None, "measurement", 1.0, 1,

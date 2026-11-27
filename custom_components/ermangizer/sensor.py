@@ -12,6 +12,11 @@ from .models import RegisterDef
 
 from .units import DEVICE_CLASS_BY_DISPLAY_UNIT, display_unit
 
+# Status and alarm are bit fields decoded into the "state" and "alarms"
+# entities. A scaled sensor over them would repeat the raw word unchanged
+# (scale 1.0), so only the undecoded reading is published.
+RAW_ONLY_REGISTERS = frozenset({"status", "alarm"})
+
 
 def _device_class(unit: str | None):
     return DEVICE_CLASS_BY_DISPLAY_UNIT.get(display_unit(unit))
@@ -91,7 +96,10 @@ class RawRegisterSensor(ErmangizerEntity, SensorEntity):
     def __init__(self, identity, register: RegisterDef) -> None:
         super().__init__(identity, f"{register.key}_raw")
         self._register = register
-        self._attr_name = f"{register.name} (сырое значение)"
+        self._attr_name = register.name
+        self._attr_entity_registry_enabled_default = (
+            register.entity_registry_enabled_default
+        )
 
     @property
     def native_value(self) -> int | None:
@@ -105,11 +113,13 @@ async def async_setup_entry(
     for identity in pump_identities(entry):
         entities: list[SensorEntity] = []
         for register in identity.coordinator.pump.layout.registers:
-            entities.append(TelemetrySensor(identity, register))
-            # Status and alarm words are bit fields or enumerations; keep the
-            # raw number alongside the decoded one.
-            if register.key in ("status", "alarm"):
+            if register.device_info:
+                # Reported as the device's software version instead.
+                continue
+            if register.key in RAW_ONLY_REGISTERS:
                 entities.append(RawRegisterSensor(identity, register))
+            else:
+                entities.append(TelemetrySensor(identity, register))
         entities.append(StateSensor(identity))
         entities.append(AlarmSensor(identity))
         prune_stale(
